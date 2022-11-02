@@ -1,0 +1,3 @@
+[submodule "mods/lib_mount"]
+	path = mods/lib_mount
+	url = https://github.com/minetest-mods/lib_mount.git
