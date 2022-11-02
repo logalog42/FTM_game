@@ -2,12 +2,7 @@
 --Registration of ship component Nodes
 --------------------------------------
 
-minetest.register_node("ship:core", {
-    description = "The main starting point for you ship",
-    tiles = {"ship_core.png"},
-    is_ground_content = false,
-    groups = {oddly_breakable_by_hand}
-})
+
 
 minetest.register_node("ship:engine", {
     description = "What allows you to move faster in space",
@@ -50,7 +45,3 @@ minetest.register_node("ship:scanner", {
     is_ground_content = false,
     groups = {oddly_breakable_by_hand}
 })
-
---------------------------------------
---Create metatable for component Nodes
---------------------------------------
