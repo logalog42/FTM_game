@@ -1,3 +1,14 @@
+local noiseparams = {
+	offset = 0.0,
+	scale = 1.0,
+	spread = vector.new(10, 10, 10),
+	seed = 0,
+	octaves = 2,
+	persistence = 0.5,
+	lacunarity = 2.0,
+	flags = "defaults",
+}
+
 minetest.register_on_generated(function(minp, maxp, seed)
   --Start point of area generated
   local x0 = minp.x
@@ -24,33 +35,81 @@ minetest.register_on_generated(function(minp, maxp, seed)
     persist = 0.5
   }
 
-  -- Voxel Area
+  local time1 = minetest.get_us_time()
 
-   local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
-   local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
-   local data = vm:get_data()
+  local startpos = minpos
+  local endpos = {x = x1, y = y1, z = z1}
 
-   --get side length of the current mapgen block
-   local side_length = maxp.x - minp.x + 1
-   local map_lengths_xyz = {x=side_length, y=side_length, z=side_length}
-   local perlin_map = minetest.get_perlin_map(np_planets, map_lengths_xyz):get_3d_map(minp)
+  local y_max = endpos.y - startpos.y
+  local vmanip, emin, emax, vdata, vdata2, varea
+  local content_test_node, content_test_node_low
 
-   --loop
-   local perlin_index = 1
-   for z = minp.z, maxp.z do
-      for y = minp.y, maxp.y do
-         for x = minp.x, maxp.x do
-            local vi = area:index(x, y, z)
-             minetest.log("ERROR[Main] "..tostring(perlin_map[vi]))
-             --more efficient coding - x++
-             perlin_index = perlin_index + 1
-             vi = vi + 1
-         end
-         --go back, one side_length
-         perlin_index = perlin_index - side_length
-      end
-      --go forward, one side_length
-      perlin_index = perlin_index + side_length
-   end
+  vmanip = VoxelManip(startpos, endpos)
+  emin, emax = vmanip:get_emerged_area()
+  vdata = vmanip:get_data()
+  vdata2 = vmanip:get_param2_data()
+  varea = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+
+  content_test_node = minetest.get_content_id("default:stone")
+
+
+  local perlin_map
+  -- Initialize Perlin map
+  -- The noise values will come from this
+  local perlin_map_object = PerlinNoiseMap(noiseparams, chulens)
+  perlin_map = perlin_map_object:get_3d_map(startpos)
+
+  local x_max, z_max
+  x_max = endpos.x - startpos.x
+  z_max = endpos.z - startpos.z
+
+  -- Main loop (time-critical!)
+  for x=0, x_max do
+  for y=0, y_max do
+  for z=0, z_max do
+    -- Note: This loop has been optimized for speed, so the code
+    -- might not look pretty.
+    -- Be careful of the performance implications when touching this
+    -- loop
+
+    -- Get Perlin value at current pos
+    local abspos
+    abspos = {
+      x = startpos.x + x,
+      y = startpos.y + y,
+      z = startpos.z + z,
+    }
+    -- Apply sidelen transformation (pixelize)
+    local indexpos = {
+      x = abspos.x - startpos.x + 1,
+      y = abspos.y - startpos.y + 1,
+      z = abspos.z - startpos.z + 1,
+    }
+
+    -- Finally get the noise value
+    local perlin_value
+    perlin_value = perlin_map[indexpos.z][indexpos.y][indexpos.x]
+
+    -- Get vmanip index
+    local index = varea:indexp(abspos)
+    if not index then
+      return
+    end
+
+    -- Set node and param2 in vmanip
+    if perlin_value >= 1.47 then
+      vdata[index] = content_test_node
+    end
+  end
+  end
+  end
+
+  -- Write all the changes to map
+  vmanip:set_data(vdata)
+  vmanip:write_to_map()
+
+  local time2 = minetest.get_us_time()
+  local timediff = time2 - time1
+  minetest.log("verbose", "[perlin_explorer] Noisechunk calculated/generated in "..timediff.." µs")
 end
 )
