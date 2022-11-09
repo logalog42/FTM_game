@@ -1,13 +1,114 @@
-local noiseparams = {
-	offset = 0.0,
-	scale = 1.0,
-	spread = vector.new(10, 10, 10),
-	seed = 0,
-	octaves = 2,
-	persistence = 0.5,
-	lacunarity = 2.0,
-	flags = "defaults",
-}
+corenodes = {}
+planetsbuilding = {}
+
+function distance( first, second)
+  return math.sqrt( (second.x-first.x)^2 + (second.y-first.y)^2 + (second.z-first.z)^2)
+end
+
+function seperation(corenodes, currentpos)
+  if corenodes[1] == nil then
+    return true
+  else
+    for node, v in ipairs(corenodes) do
+      if distance( v, currentpos) >= 500 then
+        return true
+      else
+        return false
+      end
+    end
+  end
+end
+
+function buildplanet(planetcore)
+  minetest.log("[INFO]", "In buildplanet function")
+  local endpos = {
+    x = planetcore.x + 64,
+    y = planetcore.y + 64,
+    z = planetcore.z + 64
+  }
+  local startpos = {
+    x = planetcore.x - 64,
+    y = planetcore.y - 64,
+    z = planetcore.z - 64
+  }
+
+  voxelm = VoxelManip(startpos, endpos)
+  stone = voxelm:get_node_at(planetcore)
+  emin, emax = voxelm:get_emerged_area()
+  vdata = voxelm:get_data()
+  varea = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+
+  for x = 0, 64 do
+    for y = 0, 64 do
+      for z = 0, 64 do
+        local currentpos = {
+          x = planetcore.x + x,
+          y = planetcore.y + y,
+          z = planetcore.z + z,
+        }
+        local quad2 = {
+          x = currentpos.x,
+          y = -currentpos.y,
+          z = planetcore.z
+        }
+        local quad3 = {
+          x = currentpos.x,
+          y = -currentpos.y,
+          z = -planetcore.z
+        }
+        local quad4 = {
+          x = currentpos.x,
+          y = currentpos.y,
+          z = -planetcore.z
+        }
+        local quad5 = {
+          x = -currentpos.x,
+          y = currentpos.y,
+          z = planetcore.z
+        }
+        local quad6 = {
+          x = -currentpos.x,
+          y = -currentpos.y,
+          z = planetcore.z
+        }
+        local quad7 = {
+          x = -currentpos.x,
+          y = -currentpos.y,
+          z = -planetcore.z
+        }
+        local quad8 = {
+          x = -currentpos.x,
+          y = currentpos.y,
+          z = -planetcore.z
+        }
+
+        local quads = {currentpos, quad2, quad3, quad4, quad5, quad6, quad7, quad8}
+
+        if distance(planetcore, currentpos) < 64 then
+          for quad, v in pairs(quads) do
+            -- Get vmanip index
+            local index = varea:indexp(v)
+            if not index then
+              return
+            end
+
+            -- Set node in vmanip
+              vdata[index] = content_test_node
+          end
+        end
+      end
+    end
+  end
+
+  modified = voxelm:was_modified()
+
+  minetest.log("[INFO]", tostring(modified))
+  minetest.log("[INFO]", "About to write to map")
+  voxelm:write_to_map()
+  minetest.log("[INFO]", "Map should be written")
+
+end
+
 
 minetest.register_on_generated(function(minp, maxp, seed)
   --Start point of area generated
@@ -19,27 +120,24 @@ minetest.register_on_generated(function(minp, maxp, seed)
   local x1 = maxp.x
   local y1 = maxp.y
   local z1 = maxp.z
-
   local sidelen = x1 - x0 + 1
   local chulens = {x = sidelen, y = sidelen, z = sidelen}
   local minpos = {x = x0, y = y0, z = z0}
 
-  -- 3D noise for rough terrain
-
-  local np_planets = {
-    offset = -1.59,
-    scale = 1,
-    spread = {x = 20, y = 20, z = 20},
-    seed = 92,
-    octaves = 5,
-    persist = 0.5
+  local noiseparams = {
+  	offset = 0.0,
+  	scale = 1.0,
+  	spread = vector.new(10, 10, 10),
+  	seed = 0,
+  	octaves = 2,
+  	persistence = 0.5,
+  	lacunarity = 2.0,
+  	flags = "defaults",
   }
 
   local time1 = minetest.get_us_time()
-
   local startpos = minpos
   local endpos = {x = x1, y = y1, z = z1}
-
   local y_max = endpos.y - startpos.y
   local vmanip, emin, emax, vdata, vdata2, varea
   local content_test_node, content_test_node_low
@@ -96,9 +194,11 @@ minetest.register_on_generated(function(minp, maxp, seed)
       return
     end
 
-    -- Set node and param2 in vmanip
-    if perlin_value >= 1.47 then
+    -- Set node in vmanip
+    if perlin_value >= 1.47 and seperation(corenodes, abspos) then
       vdata[index] = content_test_node
+      table.insert(corenodes, abspos)
+      buildplanet(abspos)
     end
   end
   end
@@ -107,9 +207,5 @@ minetest.register_on_generated(function(minp, maxp, seed)
   -- Write all the changes to map
   vmanip:set_data(vdata)
   vmanip:write_to_map()
-
-  local time2 = minetest.get_us_time()
-  local timediff = time2 - time1
-  minetest.log("verbose", "[perlin_explorer] Noisechunk calculated/generated in "..timediff.." µs")
 end
 )

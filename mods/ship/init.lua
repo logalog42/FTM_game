@@ -16,6 +16,6 @@ ship_names = {
 }
 
 for _, name in ipairs(ship_names) do
-  minetest.log("ERROR[Main]", name)
+  minetest.log("[INFO]", name)
   dofile(mod_path.."/shipyard/"..name..".lua")
 end
