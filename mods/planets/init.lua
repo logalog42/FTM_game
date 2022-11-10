@@ -32,11 +32,11 @@ function buildplanet(planetcore)
     z = planetcore.z - 64
   }
 
-  voxelm = VoxelManip(startpos, endpos)
-  stone = voxelm:get_node_at(planetcore)
-  emin, emax = voxelm:get_emerged_area()
-  vdata = voxelm:get_data()
-  varea = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+  local voxelm = VoxelManip(startpos, endpos)
+  local innercore = minetest.get_content_id("default:stone")
+  local emin, emax = voxelm:get_emerged_area()
+  local vdata = voxelm:get_data()
+  local varea = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
 
   for x = 0, 64 do
     for y = 0, 64 do
@@ -44,69 +44,65 @@ function buildplanet(planetcore)
         local currentpos = {
           x = planetcore.x + x,
           y = planetcore.y + y,
-          z = planetcore.z + z,
+          z = planetcore.z + z
         }
         local quad2 = {
           x = currentpos.x,
-          y = -currentpos.y,
-          z = planetcore.z
+          y = 0 - currentpos.y,
+          z = currentpos.z
         }
         local quad3 = {
           x = currentpos.x,
-          y = -currentpos.y,
-          z = -planetcore.z
+          y = - currentpos.y,
+          z = - currentpos.z
         }
         local quad4 = {
           x = currentpos.x,
           y = currentpos.y,
-          z = -planetcore.z
+          z = - currentpos.z
         }
         local quad5 = {
-          x = -currentpos.x,
+          x = - currentpos.x,
           y = currentpos.y,
-          z = planetcore.z
+          z = currentpos.z
         }
         local quad6 = {
-          x = -currentpos.x,
-          y = -currentpos.y,
-          z = planetcore.z
+          x = - currentpos.x,
+          y = - currentpos.y,
+          z = currentpos.z
         }
         local quad7 = {
-          x = -currentpos.x,
-          y = -currentpos.y,
-          z = -planetcore.z
+          x = - currentpos.x,
+          y = - currentpos.y,
+          z = - currentpos.z
         }
         local quad8 = {
-          x = -currentpos.x,
+          x = - currentpos.x,
           y = currentpos.y,
-          z = -planetcore.z
+          z = - currentpos.z
         }
 
-        local quads = {currentpos, quad2, quad3, quad4, quad5, quad6, quad7, quad8}
+        local quads = {currentpos, quad2} --, quad3, quad4, quad5, quad6, quad7, quad8}
 
         if distance(planetcore, currentpos) < 64 then
-          for quad, v in pairs(quads) do
+          for quad, v in ipairs(quads) do
             -- Get vmanip index
-            local index = varea:indexp(v)
+            local index = varea:index(v.x, v.y, v.z)
             if not index then
               return
             end
 
             -- Set node in vmanip
-              vdata[index] = content_test_node
+              vdata[index] = innercore
           end
         end
       end
     end
   end
 
-  modified = voxelm:was_modified()
-
-  minetest.log("[INFO]", tostring(modified))
-  minetest.log("[INFO]", "About to write to map")
+  voxelm:set_data(vdata)
   voxelm:write_to_map()
-  minetest.log("[INFO]", "Map should be written")
-
+  minetest.log("[INFO]", "Exiting planetsbuilding")
 end
 
 
