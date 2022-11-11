@@ -2,7 +2,7 @@ corenodes = {}
 planetsbuilding = {}
 
 function distance( first, second)
-  return math.sqrt( (second.x-first.x)^2 + (second.y-first.y)^2 + (second.z-first.z)^2)
+  return math.floor(math.sqrt( (second.x-first.x)^2 + (second.y-first.y)^2 + (second.z-first.z)^2))
 end
 
 function seperation(corenodes, currentpos)
@@ -32,61 +32,81 @@ function buildplanet(planetcore)
     z = planetcore.z - 64
   }
 
+  --Create VoxelManip object
   local voxelm = VoxelManip(startpos, endpos)
+
   local innercore = minetest.get_content_id("default:stone")
+
+  --Get the actual loaded area coordinates
   local emin, emax = voxelm:get_emerged_area()
+  --Load node content into flat array table
   local vdata = voxelm:get_data()
+  --Create helper class for voxel areas
   local varea = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
 
-  for x = 0, 64 do
+  for z = 0, 64 do
     for y = 0, 64 do
-      for z = 0, 64 do
+      for x = 0, 64 do
         local currentpos = {
           x = planetcore.x + x,
           y = planetcore.y + y,
           z = planetcore.z + z
         }
+        --minetest.log("[INFO]", "Currentpos x = " .. currentpos.x .. " y = " .. currentpos.y .. " z = " .. currentpos.z)
         local quad2 = {
-          x = currentpos.x,
-          y = 0 - currentpos.y,
-          z = currentpos.z
+          x = planetcore.x + x,
+          y = planetcore.y - y,
+          z = planetcore.z + z
         }
         local quad3 = {
-          x = currentpos.x,
-          y = - currentpos.y,
-          z = - currentpos.z
+          x = planetcore.x + x,
+          y = planetcore.y - y,
+          z = planetcore.z - z
         }
         local quad4 = {
-          x = currentpos.x,
-          y = currentpos.y,
-          z = - currentpos.z
+          x = planetcore.x + x,
+          y = planetcore.y + y,
+          z = planetcore.z - z
         }
         local quad5 = {
-          x = - currentpos.x,
-          y = currentpos.y,
-          z = currentpos.z
+          x = planetcore.x - x,
+          y = planetcore.y + y,
+          z = planetcore.z + z
         }
         local quad6 = {
-          x = - currentpos.x,
-          y = - currentpos.y,
-          z = currentpos.z
+          x = planetcore.x - x,
+          y = planetcore.y - y,
+          z = planetcore.z + z
         }
         local quad7 = {
-          x = - currentpos.x,
-          y = - currentpos.y,
-          z = - currentpos.z
+          x = planetcore.x - x,
+          y = planetcore.y - y,
+          z = planetcore.z - z
         }
         local quad8 = {
-          x = - currentpos.x,
-          y = currentpos.y,
-          z = - currentpos.z
+          x = planetcore.x - x,
+          y = planetcore.y + y,
+          z = planetcore.z - z
         }
 
-        local quads = {currentpos, quad2} --, quad3, quad4, quad5, quad6, quad7, quad8}
+        --minetest.log("[INFO]", "Quad x = " .. currentpos.x .. " y = " .. currentpos.y .. " z = " .. currentpos.z)
+        --minetest.log("[INFO]", "Quad2 x = " .. quad2.x .. " y = " .. quad2.y .. " z = " .. quad2.z)
+        --minetest.log("[INFO]", "Quad3 x = " .. quad3.x .. " y = " .. quad3.y .. " z = " .. quad3.z)
+        --minetest.log("[INFO]", "Quad4 x = " .. quad4.x .. " y = " .. quad4.y .. " z = " .. quad4.z)
+        --minetest.log("[INFO]", "Quad5 x = " .. quad5.x .. " y = " .. quad5.y .. " z = " .. quad5.z)
+        --minetest.log("[INFO]", "Quad6 x = " .. quad6.x .. " y = " .. quad6.y .. " z = " .. quad6.z)
+        --minetest.log("[INFO]", "Quad7 x = " .. quad7.x .. " y = " .. quad7.y .. " z = " .. quad7.z)
+        --minetest.log("[INFO]", "Quad8 x = " .. quad8.x .. " y = " .. quad8.y .. " z = " .. quad8.z)
 
-        if distance(planetcore, currentpos) < 64 then
+
+        local quads = {currentpos, quad2, quad3, quad4, quad5, quad6, quad7, quad8}
+
+        if distance(planetcore, currentpos) == 64 then
           for quad, v in ipairs(quads) do
-            -- Get vmanip index
+            --Returns the index of an absolute position in a flat array
+            --minetest.log("[INFO]", "Index x = " .. v.x .. " y = " .. v.y .. " z = " .. v.z)
+            --minetest.log("[INFO]", "Current quad = " .. tostring(quad))
+
             local index = varea:index(v.x, v.y, v.z)
             if not index then
               return
